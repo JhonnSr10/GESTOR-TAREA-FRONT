@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle2, Circle, Trash2, Edit2, Clock, TrendingUp } from 'lucide-react';

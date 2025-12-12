@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -9,7 +8,6 @@ import { toast } from '@/components/ui/use-toast';
 import TaskModal from '@/components/TaskModal';
 import TaskCard from '@/components/TaskCard';
 import ProgressBar from '@/components/ProgressBar';
-import { crearTarea } from './lib/api';
 
 function App() {
   const [tasks, setTasks] = useState([]);
@@ -29,32 +27,19 @@ function App() {
     localStorage.setItem('tasks', JSON.stringify(tasks));
   }, [tasks]);
 
-  const addTask = async (taskData) => {
-    try {
-      // Formatear los datos para la API
-      const tareaApi = {
-        titulo: taskData.titulo,
-        descripcion: taskData.descripcion,
-        categoria_id: taskData.categoria_id || 0,
-        prioridad_id: taskData.prioridad_id || 0,
-        miembro_id: taskData.miembro_id || 0,
-        estado: 'pendiente',
-        fecha_limite: taskData.fecha_limite || new Date().toISOString(),
-      };
-      const nuevaTarea = await crearTarea(tareaApi);
-      // Puedes ajustar el objeto según la respuesta de la API
-      setTasks([{ ...nuevaTarea, completed: false, progress: 0, createdAt: new Date().toISOString() }, ...tasks]);
-      toast({
-        title: "¡Tarea creada! 🎉",
-        description: "Tu nueva tarea ha sido añadida exitosamente.",
-      });
-    } catch (error) {
-      toast({
-        title: "Error al crear tarea",
-        description: error.message || "No se pudo crear la tarea.",
-        variant: "destructive",
-      });
-    }
+  const addTask = (taskData) => {
+    const newTask = {
+      id: Date.now(),
+      ...taskData,
+      completed: false,
+      progress: 0,
+      createdAt: new Date().toISOString(),
+    };
+    setTasks([newTask, ...tasks]);
+    toast({
+      title: "¡Tarea creada! 🎉",
+      description: "Tu nueva tarea ha sido añadida exitosamente.",
+    });
   };
 
   const updateTask = (taskData) => {

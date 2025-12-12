@@ -4,6 +4,7 @@ import { Helmet } from 'react-helmet';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, CheckCircle, ListTodo, Activity, CheckCircle2, TrendingUp, LogOut } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Toaster } from '@/components/ui/toaster';
 import { toast } from '@/components/ui/use-toast';
@@ -16,7 +17,10 @@ function DashboardPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [filter, setFilter] = useState('all');
+  const [showGlobalProgress, setShowGlobalProgress] = useState(true);
+  
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   useEffect(() => {
     const savedTasks = localStorage.getItem('tasks');
@@ -29,6 +33,15 @@ function DashboardPage() {
     localStorage.setItem('tasks', JSON.stringify(tasks));
   }, [tasks]);
 
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+    toast({
+      title: "Sesión cerrada",
+      description: "Has cerrado sesión correctamente.",
+    });
+  };
+
   const addTask = (taskData) => {
     const newTask = {
       id: Date.now(),
@@ -36,8 +49,8 @@ function DashboardPage() {
       completed: false,
       progress: 0,
       createdAt: new Date().toISOString(),
-      owner: 'Administrador',
-      ownerHandle: '@admin',
+      owner: user?.name || 'Usuario',
+      ownerHandle: `@${user?.username || 'user'}`,
     };
     setTasks([newTask, ...tasks]);
     toast({
@@ -106,11 +119,15 @@ function DashboardPage() {
     pending: tasks.filter(t => !t.completed).length,
   };
 
+  const globalProgress = tasks.length > 0 
+    ? Math.round((tasks.reduce((sum, task) => sum + (task.progress || 0), 0) / tasks.length))
+    : 0;
+
   return (
     <>
       <Helmet>
         <title>Dashboard - Gestor de Tareas</title>
-        <meta name="description" content="Gestiona tus tareas de manera eficiente con nuestro gestor de tareas moderno y fácil de usar." />
+        <meta name="description" content="Gestiona tus tareas de manera eficiente." />
       </Helmet>
 
       <div className="min-h-screen p-4 md:p-8 bg-slate-100 text-slate-800">
@@ -129,23 +146,54 @@ function DashboardPage() {
                 </h1>
               </div>
               <p className="text-slate-500 ml-11">
-                Bienvenido, <span className="font-bold">Administrador</span>
+                Bienvenido, <span className="font-bold">{user?.name || 'Administrador'}</span>
               </p>
             </div>
             <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={() => setShowGlobalProgress(!showGlobalProgress)}>
+                {showGlobalProgress ? 'Ocultar Progreso' : 'Ver Progreso'}
+              </Button>
               <Button variant="outline" onClick={() => navigate('/team-progress')}>
-                Ver Progreso
+                Equipo
               </Button>
               <Button onClick={() => setIsModalOpen(true)} className="bg-slate-900 text-white hover:bg-slate-800">
                 <Plus className="w-4 h-4 mr-2" />
                 Nueva Tarea
               </Button>
-              <Button variant="outline" onClick={() => toast({ title: "🚧 ¡Función no implementada!", description: "¡Podrás solicitar esta función en tu próximo prompt! 🚀" })}>
+              <Button variant="outline" onClick={handleLogout} className="text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300">
                 <LogOut className="w-4 h-4 mr-2" />
                 Salir
               </Button>
             </div>
           </motion.header>
+
+          {/* Global Progress Card */}
+          <AnimatePresence>
+            {showGlobalProgress && (
+              <motion.div
+                initial={{ opacity: 0, height: 0, y: -20 }}
+                animate={{ opacity: 1, height: 'auto', y: 0 }}
+                exit={{ opacity: 0, height: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+                className="bg-white rounded-xl p-6 mb-6 border border-slate-200 shadow-sm"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <TrendingUp className="w-8 h-8 text-blue-600" />
+                    <div>
+                      <h2 className="text-xl font-bold text-slate-900">Progreso Global</h2>
+                      <p className="text-slate-500 text-sm">Todas tus tareas combinadas</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-3xl font-bold text-slate-900">{globalProgress}%</p>
+                    <p className="text-slate-500 text-sm">{stats.completed} de {stats.total} completadas</p>
+                  </div>
+                </div>
+                <ProgressBar progress={globalProgress} size="large" />
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Stats Cards */}
           <motion.div
